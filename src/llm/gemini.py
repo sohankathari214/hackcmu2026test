@@ -9,6 +9,14 @@ from src.schemas.doctor_policy import DoctorPolicy
 
 SYSTEM = """Extract only explicitly stated information into CurrentState JSON. Never invent values. Unknown values must be omitted or null. Do not give medical advice, insulin recommendations, safety decisions, or forecasts. Set proposed_action only when the user clearly states one."""
 
+def _gemini_schema(schema):
+    # Gemini Developer API rejects Pydantic's additionalProperties=false.
+    def clean(value):
+        if isinstance(value,dict): return {k:clean(v) for k,v in value.items() if k!="additionalProperties"}
+        if isinstance(value,list): return [clean(v) for v in value]
+        return value
+    return clean(schema.model_json_schema())
+
 def _demo_parse(text:str) -> dict[str,Any]:
     lower=text.lower(); glucose=re.search(r"(?:at|glucose(?: is)?)\s*(\d{2,3})",lower); minutes=re.search(r"(\d+)\s*(?:minute|min)",lower); duration=int(minutes.group(1)) if minutes else None
     action="exercise" if any(x in lower for x in ("run","workout","exercise","gym")) else "caffeine" if any(x in lower for x in ("coffee","caffeine")) else "alcohol" if any(x in lower for x in ("beer","wine","drink")) else "none"
@@ -27,7 +35,7 @@ def parse_state_text(text:str) -> dict[str,Any]:
         from google import genai
         from google.genai import types
         client=genai.Client(api_key=key)
-        response=client.models.generate_content(model=os.getenv("GEMINI_MODEL","gemini-2.5-flash"),contents=f"{SYSTEM}\n\nUser text:\n{text}",config=types.GenerateContentConfig(response_mime_type="application/json",response_schema=CurrentState))
+        response=client.models.generate_content(model=os.getenv("GEMINI_MODEL","gemini-3.6-flash"),contents=f"{SYSTEM}\n\nUser text:\n{text}",config=types.GenerateContentConfig(response_mime_type="application/json",response_json_schema=_gemini_schema(CurrentState)))
         state=CurrentState.model_validate_json(response.text)
         return {"state":state.model_dump(mode="json"),"parser":{"provider":"gemini","gemini_used":True}}
     except Exception as exc:
@@ -42,7 +50,7 @@ def _extract(text: str, schema, demo: dict, kind: str) -> dict[str, Any]:
         from google.genai import types
         client=genai.Client(api_key=key)
         prompt=f"Extract only explicitly stated {kind} facts into the supplied JSON schema. Do not invent missing information. This is data extraction, not medical advice.\n\n{text}"
-        response=client.models.generate_content(model=os.getenv("GEMINI_MODEL","gemini-2.5-flash"),contents=prompt,config=types.GenerateContentConfig(response_mime_type="application/json",response_schema=schema))
+        response=client.models.generate_content(model=os.getenv("GEMINI_MODEL","gemini-3.6-flash"),contents=prompt,config=types.GenerateContentConfig(response_mime_type="application/json",response_json_schema=_gemini_schema(schema)))
         return {"data":schema.model_validate_json(response.text).model_dump(mode="json"),"parser":{"provider":"gemini","gemini_used":True}}
     except Exception as exc: raise RuntimeError(f"Gemini {kind} parsing failed; no fallback was used: {exc}") from exc
 

@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+.env
 data/raw/
 data/processed/
 artifacts/**/*.joblib
