@@ -15,4 +15,7 @@ def finalize_episode(episode: dict[str, Any], actual_action: dict[str, Any], obs
         if obs is not None and pred is not None:
             csv[f"r{horizon}"] = obs - pred
     episode["residuals"] = csv
+    unexpected = episode.get("unexpected_events", [])
+    episode["quality"]["confounded"] = bool(unexpected)
+    episode["quality"]["usable_for_personalization"] = bool(csv) and not bool(unexpected)
     return episode

@@ -31,6 +31,12 @@ GlucoPilot is a hackathon-runnable Python prototype for personalized short-term 
 
 Run the end-to-end proof of concept with `python3 scripts/train_full_poc.py` (or `make full-poc`).
 
+## Grey-box simulator and decision support
+
+`src/physiology/` provides a transparent five-minute, Monte-Carlo grey-box trajectory simulator. Its POC parameters and source links are in `configs/params.yaml`. `src/decision/` evaluates baseline and proposed scenarios, while `src/safety/` can block scenarios with missing glucose, configured exercise thresholds, ketone red flags, or clinician-authored hard rules. These components are decision-support demonstrations only: they are not clinically validated, do not prescribe insulin, and do not replace emergency or clinician care.
+
+After the full pipeline, run `python3 scripts/train_personalization.py` and `python3 scripts/run_personalization_experiment.py` to persist general per-patient residual models and produce the chronological reveal curve. These models intentionally exclude simulator-only hidden traits.
+
 ## Architecture
 
 MedicalProfile / CurrentState -> feature builder -> population models -> scenario forecast -> doctor policy -> structured outputs

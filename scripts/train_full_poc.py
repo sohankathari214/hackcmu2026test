@@ -1,6 +1,6 @@
 """Run the real-HUPA plus synthetic-action proof-of-concept pipeline."""
 from __future__ import annotations
-import json,sys
+import json,sys,subprocess
 from pathlib import Path
 import pandas as pd
 import yaml
@@ -29,5 +29,5 @@ def main():
  synthetic=[]
  for h in (30,60,90,120):
   z=held.dropna(subset=[f"y{h}"]); pred=models[f"population_g{h}"].predict(z[FEATURE_NAMES].fillna(0)); synthetic.append({"label":"synthetic proof-of-concept evaluation","horizon":h,"MAE":float(mean_absolute_error(z[f"y{h}"],pred)),"rows":len(z)})
- pd.DataFrame(synthetic).to_csv(report/"synthetic_action_metrics.csv",index=False); (report/"synthetic_action_metrics.json").write_text(json.dumps(synthetic,indent=2)); (report/"model_summary.json").write_text(json.dumps({"real_data":"HUPA-UCM","synthetic_additions":["exercise labels/effects","caffeine","alcohol","stress","illness","hydration"],"clinical_validation":False,"proof_of_concept":True,"population_metrics":pop_metrics,"risk_metrics":risk_metrics},indent=2)); print(f"Complete: {len(raw)} real rows, {len(real)} real states, {len(hybrid)} hybrid episodes")
+ pd.DataFrame(synthetic).to_csv(report/"synthetic_action_metrics.csv",index=False); (report/"synthetic_action_metrics.json").write_text(json.dumps(synthetic,indent=2)); (report/"model_summary.json").write_text(json.dumps({"real_data":"HUPA-UCM","synthetic_additions":["exercise labels/effects","caffeine","alcohol","stress","illness","hydration"],"clinical_validation":False,"proof_of_concept":True,"population_metrics":pop_metrics,"risk_metrics":risk_metrics},indent=2)); subprocess.run([sys.executable,str(ROOT/"scripts/train_personalization.py")],check=True); subprocess.run([sys.executable,str(ROOT/"scripts/run_personalization_experiment.py")],check=True); print(f"Complete: {len(raw)} real rows, {len(real)} real states, {len(hybrid)} hybrid episodes")
 if __name__=="__main__": main()

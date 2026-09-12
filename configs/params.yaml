@@ -1,0 +1,30 @@
+# Proof-of-concept parameters only. They are transparent assumptions, not a dosing model.
+simulator:
+  version: "greybox-poc-v1"
+  step_minutes: 5
+  glucose_clip_mg_dl: [40, 400]
+  monte_carlo_samples: 100
+  target_glucose_mg_dl: 110
+  glucose_relaxation_per_min: 0.006
+  carb_absorption_minutes: 75
+  insulin_action_minutes: 240
+  basal_reference_u_hr: 0.8
+  meal_gain_mg_dl_per_g: 1.25
+  insulin_gain_mg_dl_per_u: 28.0
+  exercise_gain_mg_dl: 18.0
+  caffeine_gain_mg_dl: 6.0
+  alcohol_delayed_gain_mg_dl: -10.0
+  hydration_gain_mg_dl: 3.0
+  illness_gain_mg_dl: 9.0
+  stress_gain_mg_dl: 4.0
+  citations:
+    hovorka: "Hovorka et al. (2004), nonlinear compartmental glucose-insulin model; https://pmc.ncbi.nlm.nih.gov/articles/PMC2597856/"
+    dcct: "NIDDK DCCT/EDIC overview; intensive treatment reduced diabetic eye disease by 76%; https://www.niddk.nih.gov/about-niddk/research-areas/diabetes/blood-glucose-control-studies-type-1-diabetes-dcct-edic"
+    alcohol: "NIAAA alcohol metabolism overview; https://www.niaaa.nih.gov/publications/alcohol-metabolism"
+safety:
+  min_glucose_for_exercise_mg_dl: 90
+  hypo_threshold_mg_dl: 70
+  hyper_threshold_mg_dl: 250
+  ketone_escalation_mmol_l: 0.6
+  stale_cgm_minutes: 20
+  max_hypo_probability: 0.05

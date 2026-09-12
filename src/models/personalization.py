@@ -33,10 +33,10 @@ def alpha_for_episode_count(n: int, k: int = 20) -> float:
 
 
 def train_personal_model(training_df: pd.DataFrame, feature_names: list[str], target_name: str, alpha: float = 1.0):
-    subset = training_df.dropna(subset=[target_name] + feature_names)
-    X = subset[feature_names]
+    subset = training_df.dropna(subset=[target_name])
+    X = subset[feature_names].replace([np.inf, -np.inf], np.nan).fillna(0)
     y = subset[target_name]
-    model = PersonalResidualModel(horizon=30, alpha=alpha)
+    model = PersonalResidualModel(horizon=int(target_name.split("_")[-1][1:]) if target_name.startswith("residual_g") else 30, alpha=alpha)
     model.fit(X, y)
     return model
 
