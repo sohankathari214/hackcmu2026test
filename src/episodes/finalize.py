@@ -17,5 +17,8 @@ def finalize_episode(episode: dict[str, Any], actual_action: dict[str, Any], obs
     episode["residuals"] = csv
     unexpected = episode.get("unexpected_events", [])
     episode["quality"]["confounded"] = bool(unexpected)
-    episode["quality"]["usable_for_personalization"] = bool(csv) and not bool(unexpected)
+    synthetic = bool(episode.get("observation_provenance", {}).get("not_for_personalization"))
+    episode["quality"]["usable_for_personalization"] = bool(csv) and not bool(unexpected) and not synthetic
+    if synthetic:
+        episode["quality"].setdefault("exclusion_reasons", []).append("synthetic_poc_observation")
     return episode

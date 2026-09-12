@@ -23,7 +23,8 @@ from src.models.registry import ModelRegistry
 from src.api.dashboard import HTML
 from src.physiology import fit_patient_parameters, monitor_drift
 from src.inference.support_registry import ActionSupportRegistry
-from src.llm import parse_state_text,parse_profile_text,parse_policy_text,explain_structured_forecast
+from src.llm import parse_state_text,parse_profile_text,parse_policy_text,explain_structured_forecast,user_feedback
+from src.synthetic.observed_outcome import synthetic_observation
 from src.features.build_state import build_feature_vector
 from src.inference.forecast import _events
 
@@ -75,7 +76,14 @@ def forecast(profile: MedicalProfile, state: CurrentState):
 
 @app.post("/compare-scenarios")
 def compare(profile: MedicalProfile, state: CurrentState):
-    return compare_scenarios(profile, state, [state.proposed_action.model_dump()], episodes=EpisodeStore().patient(profile.patient_id))
+    try:
+        return compare_scenarios(profile, state, [state.proposed_action.model_dump()], episodes=EpisodeStore().patient(profile.patient_id))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Forecast temporarily unavailable: {exc}") from exc
+
+@app.post("/assistant-feedback")
+def assistant_feedback(payload: dict[str, Any]):
+    return user_feedback(payload.get("state", {}), payload.get("forecast", {}))
 
 
 @app.post("/episodes/create")
@@ -103,7 +111,25 @@ def finalize_episode_endpoint(payload: dict[str, Any]):
         raise HTTPException(status_code=404,detail="Episode not found.")
     forecast=payload.get("population_forecast") or episode.get("prediction",{})
     episode=finalize_episode(episode, payload.get("actual_action", {}), payload.get("observed", {}), forecast)
-    return EpisodeStore().replace(episode)
+    saved = EpisodeStore().replace(episode)
+    usable = [item for item in EpisodeStore().patient(saved["patient_id"]) if item.get("quality", {}).get("usable_for_personalization")]
+    training: dict[str, Any] = {"status": "collecting", "valid_episode_count": len(usable), "required_episode_count": 10}
+    if saved["quality"].get("usable_for_personalization") and len(usable) >= 10:
+        try:
+            training = retrain_from_episodes(saved["patient_id"], EpisodeStore().patient(saved["patient_id"]))
+        except ValueError as exc:
+            training = {"status": "not_retrained", "reason": str(exc), "valid_episode_count": len(usable)}
+    return {**saved, "personalization_update": training}
+
+@app.post("/episodes/{episode_id}/generate-synthetic-outcome")
+def generate_synthetic_outcome(episode_id: str):
+    episode = EpisodeStore().get(episode_id)
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found.")
+    sample = synthetic_observation(episode)
+    episode["observation_provenance"] = sample["provenance"]
+    finalized = finalize_episode(episode, episode.get("planned_action", {}), sample["observed"], episode.get("prediction", {}))
+    return EpisodeStore().replace(finalized)
 
 
 @app.get("/patients/{patient_id}/model-status")

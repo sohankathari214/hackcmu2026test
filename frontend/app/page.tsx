@@ -8,6 +8,22 @@ const API = "/api/backend";
 const profile = { patient_id: "patient_001", profile_version: 1, demographics: { age_years: 24, weight_kg: 64 }, diabetes: { type: "T1D", years_since_diagnosis: 11, insulin_delivery: "pump" }, medications: [], conditions: [], baseline_metrics: {}, source_metadata: { demo: true } };
 const seed = "I’m at 145 and trending down. I ate 50 grams of carbs and took 3 units an hour ago. I want to go for a moderate 45-minute run now.";
 
+async function requestJson(path: string, body: unknown, attempts = 3): Promise<any> {
+  let lastError: Error = new Error("The GlucoPilot service did not respond.");
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(`${API}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const payload = await response.json();
+      if (response.ok) return payload;
+      throw new Error(payload.detail || `Request failed (${response.status}).`);
+    } catch (error: any) {
+      lastError = error instanceof Error ? error : new Error("The GlucoPilot service did not respond.");
+      if (attempt < attempts - 1) await new Promise(resolve => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
 function Chart({ values, tone = "coral" }: { values: number[]; tone?: string }) {
   const w = 620, h = 185, min = 60, max = 200;
   const points = values.map((v, i) => `${i * w / (values.length - 1)},${h - (v - min) / (max - min) * h}`).join(" ");
@@ -24,6 +40,7 @@ export default function Home() {
   const [parsed, setParsed] = useState<any>();
   const [result, setResult] = useState<any>();
   const [saved, setSaved] = useState<any>();
+  const [feedback, setFeedback] = useState<any>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const baseline = result?.baseline?.population_forecast;
@@ -32,10 +49,11 @@ export default function Home() {
   async function run() {
     setBusy(true); setError("");
     try {
-      const p = await fetch(`${API}/parse-state`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).then(r => r.ok ? r.json() : r.json().then(Promise.reject));
-      const comparison = await fetch(`${API}/compare-scenarios`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, state: p.state }) }).then(r => r.ok ? r.json() : r.json().then(Promise.reject));
-      setParsed(p); setResult(comparison); setSaved(undefined);
-    } catch (e: any) { setError(e?.detail || "Could not connect to the GlucoPilot API."); }
+      const p = await requestJson("/parse-state", { text });
+      const comparison = await requestJson("/compare-scenarios", { profile, state: p.state });
+      setParsed(p); setResult(comparison); setSaved(undefined); setFeedback(undefined);
+      void requestJson("/assistant-feedback", { state: p.state, forecast: comparison }, 1).then(setFeedback).catch(() => setFeedback({ message: "Review the forecast inputs and record the observed outcome after the event.", safety_note: "Decision support, not medical advice.", generated_by: "local_fallback" }));
+    } catch (e: any) { setError(e?.message || "Simulation could not be completed after three attempts."); }
     finally { setBusy(false); }
   }
 
@@ -43,7 +61,7 @@ export default function Home() {
     if (!parsed || !proposed) return;
     setBusy(true); setError("");
     try {
-      const episode = await fetch(`${API}/episodes/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ patient_id: profile.patient_id, medical_profile: profile, state: parsed.state, planned_action: parsed.state.proposed_action, prediction: proposed }) }).then(r => r.ok ? r.json() : r.json().then(Promise.reject));
+      const episode = await requestJson("/episodes/create", { patient_id: profile.patient_id, medical_profile: profile, state: parsed.state, planned_action: parsed.state.proposed_action, prediction: proposed });
       setSaved(episode);
     } catch (e: any) { setError(e?.detail || "Could not save this episode."); }
     finally { setBusy(false); }
@@ -62,9 +80,9 @@ export default function Home() {
           <article className="card"><p><Clock3 size={16} /> Recent inputs</p><dl><div><dt>Insulin</dt><dd>3.0 units · 60 min ago</dd></div><div><dt>Carbohydrates</dt><dd>50 g · 60 min ago</dd></div><div><dt>Sleep</dt><dd>5.0 hours last night</dd></div></dl><button onClick={() => setText(seed)}>Restore demo context</button></article>
         </div>
         <div className="heading simhead" id="simulator"><div><p className="eyebrow">SCENARIO SIMULATOR</p><h2>What might happen?</h2></div><span className="ready">● Model ready</span></div>
-        <article className="card simulator"><label>What are you considering?</label><textarea value={text} onChange={e => setText(e.target.value)} /><div className="runrow"><span><Sparkles size={15} /> OpenAI extracts structured input; models generate the forecast.</span><button onClick={run} disabled={busy}>{busy ? "Running simulation…" : "Run simulation"} <Play size={14} /></button></div>{error && <p className="error">{error}</p>}{parsed && <div className="parsed"><b>I understood</b><span>{parsed.state.proposed_action.action_type} · parser: {parsed.parser.provider}</span></div>}<div className="options"><div><i className="coral" /><b>Run now</b><span>{proposed ? `${proposed.g120?.toFixed(0)} mg/dL at +120` : "simulate to estimate"}</span></div><div><i className="teal" /><b>No action</b><span>{baseline ? `${baseline.g120?.toFixed(0)} mg/dL at +120` : "baseline"}</span></div></div>{result && <div className="episode-row">{saved ? <span>Episode saved. Add observed glucose in History after the event.</span> : <button onClick={saveEpisode} disabled={busy}>I’m doing this — save for learning</button>}</div>}</article>
+        <article className="card simulator"><label>What are you considering?</label><textarea value={text} onChange={e => setText(e.target.value)} /><div className="runrow"><span><Sparkles size={15} /> OpenAI extracts event types and values; the model receives any POC estimates with labels.</span><button onClick={run} disabled={busy}>{busy ? "Running simulation…" : "Run simulation"} <Play size={14} /></button></div>{error && <p className="error">{error}</p>}{parsed && <div className="parsed"><b>I understood</b><span>{parsed.state.proposed_action.action_type} · parser: {parsed.parser.provider}{parsed.state.parser_metadata?.estimated_fields?.length ? ` · estimated: ${parsed.state.parser_metadata.estimated_fields.join(", ")}` : ""}</span></div>}<div className="options"><div><i className="coral" /><b>Run now</b><span>{proposed ? `${proposed.g120?.toFixed(0)} mg/dL at +120` : "simulate to estimate"}</span></div><div><i className="teal" /><b>No action</b><span>{baseline ? `${baseline.g120?.toFixed(0)} mg/dL at +120` : "baseline"}</span></div></div>{result && <div className="episode-row">{saved ? <span>Episode saved. Add observed glucose in History after the event.</span> : <button onClick={saveEpisode} disabled={busy}>I’m doing this — save for learning</button>}</div>}</article>
         <div className="heading"><div><p className="eyebrow">MODEL EXPLANATION</p><h2>Why this estimate?</h2></div></div>
-        <article className="card explain"><div><span className="coral-icon"><ArrowDownRight size={17} /></span><p><b>Proposed activity may lower the trajectory</b><small>The action response is learned from synthetic POC augmentation, not clinical evidence.</small></p></div><div><span className="blue-icon"><FlaskConical size={17} /></span><p><b>Recent insulin and carbohydrate context are included</b><small>The feature engine uses only data available at the scenario timestamp.</small></p></div><div><span className="amber-icon"><AlertTriangle size={17} /></span><p><b>Short sleep adds uncertainty</b><small>Prediction bands and data-quality signals remain available from the model output.</small></p></div></article>
+        <article className="card explain"><div><span className="coral-icon"><ArrowDownRight size={17} /></span><p><b>Proposed activity may lower the trajectory</b><small>The action response is learned from synthetic POC augmentation, not clinical evidence.</small></p></div><div><span className="blue-icon"><FlaskConical size={17} /></span><p><b>Recent insulin and carbohydrate context are included</b><small>The feature engine uses only data available at the scenario timestamp.</small></p></div><div><span className="amber-icon"><AlertTriangle size={17} /></span><p><b>{feedback?.generated_by === "openai" ? "OpenAI context check" : "Input and safety check"}</b><small>{feedback?.message || "Simulation feedback appears here after the forecast. This does not provide dosing or treatment advice."}</small></p></div></article>
       </section><aside>
         <div className="heading"><div><p className="eyebrow">PREDICTED TRAJECTORY</p><h2>Next 2 hours</h2></div></div>
         <article className="card trajectory"><div className="legend"><span><i className="coral" /> Proposed action</span><span><i className="teal" /> Baseline</span></div><Chart values={trajectory} /><div className="labels"><span>Now</span><span>30m</span><span>60m</span><span>90m</span><span>120m</span></div>{result ? <div className="callout"><b>{result.difference.delta60?.toFixed(0)} mg/dL estimated difference at 60 minutes.</b><span>{result.proposed.warnings?.[0] || "Population forecast with explicit provenance."}</span></div> : <div className="callout"><b>Run a scenario to see a model comparison.</b><span>Baseline and proposed action will be displayed here.</span></div>}</article>
