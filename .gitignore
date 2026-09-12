@@ -6,6 +6,8 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
+data/raw/
+data/processed/
 artifacts/**/*.joblib
 artifacts/**/*.json
 artifacts/**/*.csv

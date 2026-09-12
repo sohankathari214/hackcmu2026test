@@ -14,8 +14,8 @@ def train_quantile_models(training_df: pd.DataFrame, cfg: dict, feature_names: l
 
     for horizon in horizons:
         target_col = f"y{horizon}"
-        subset = training_df.dropna(subset=[target_col] + feature_names)
-        X = subset[feature_names]
+        subset = training_df.dropna(subset=[target_col])
+        X = subset[feature_names].replace([np.inf, -np.inf], np.nan).fillna(0)
         y = subset[target_col]
         horizon_models = {}
 
@@ -23,7 +23,7 @@ def train_quantile_models(training_df: pd.DataFrame, cfg: dict, feature_names: l
             params = {
                 "objective": "quantile",
                 "alpha": q,
-                "n_estimators": cfg.get("lightgbm", {}).get("n_estimators", 150),
+                "n_estimators": cfg.get("lightgbm", {}).get("n_estimators", 40),
                 "learning_rate": cfg.get("lightgbm", {}).get("learning_rate", 0.05),
                 "num_leaves": cfg.get("lightgbm", {}).get("num_leaves", 31),
                 "max_depth": cfg.get("lightgbm", {}).get("max_depth", -1),
@@ -31,6 +31,7 @@ def train_quantile_models(training_df: pd.DataFrame, cfg: dict, feature_names: l
                 "colsample_bytree": cfg.get("lightgbm", {}).get("colsample_bytree", 0.9),
                 "random_state": cfg.get("seed", 42),
                 "verbose": -1,
+                "n_jobs": 1,
             }
             model = lgb.LGBMRegressor(**params)
             model.fit(X, y)

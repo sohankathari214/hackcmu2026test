@@ -9,6 +9,9 @@ prepare:
 train:
 	$(PYTHON) scripts/train_population.py
 
+full-poc:
+	$(PYTHON) scripts/train_full_poc.py
+
 train-risk:
 	$(PYTHON) scripts/train_risk_models.py
 

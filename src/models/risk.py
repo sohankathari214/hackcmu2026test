@@ -15,8 +15,8 @@ def train_risk_models(training_df: pd.DataFrame, cfg: dict, feature_names: list[
     for target_name in ["hypo_120", "hyper_120"]:
         if target_name not in training_df.columns:
             continue
-        subset = training_df.dropna(subset=[target_name] + feature_names)
-        X = subset[feature_names]
+        subset = training_df.dropna(subset=[target_name])
+        X = subset[feature_names].replace([np.inf, -np.inf], np.nan).fillna(0)
         y = subset[target_name].astype(int)
 
         if y.nunique() < 2:
@@ -33,6 +33,7 @@ def train_risk_models(training_df: pd.DataFrame, cfg: dict, feature_names: list[
             "random_state": cfg.get("seed", 42),
             "verbose": -1,
             "is_unbalance": True,
+            "n_jobs": 1,
         }
 
         model = lgb.LGBMClassifier(**params)

@@ -1,108 +1,46 @@
+"""Adapter for the semicolon-delimited HUPA-UCM preprocessed exports."""
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-
 import pandas as pd
-
 from .base_adapter import BaseDatasetAdapter
 
+REQUIRED_COLUMNS = {"time", "glucose", "calories", "heart_rate", "steps", "basal_rate", "bolus_volume_delivered", "carb_input"}
 
 class HUPAAdapter(BaseDatasetAdapter):
-    """A generic placeholder adapter for HUPA-like data.
-
-    This adapter intentionally supports configurable paths and column mapping while
-    failing gracefully if no HUPA files exist in the local workspace.
-    """
-
-    def __init__(self, root_dir: str | Path | None = None, mapping: dict[str, Any] | None = None):
+    def __init__(self, root_dir: str | Path = "data/raw/Preprocessed", config: dict[str, Any] | None = None, mapping: dict[str, Any] | None = None):
         super().__init__(source_name="hupa", root_dir=root_dir)
-        self.mapping = mapping or {}
+        self.config, self.mapping = config or {}, mapping or {}
+
+    def discover_files(self) -> list[Path]:
+        return sorted(Path(self.root_dir).glob("HUPA*P.csv"))
+
+    def load_preprocessed(self) -> pd.DataFrame:
+        files = self.discover_files()
+        if not files:
+            raise FileNotFoundError(f"No HUPA preprocessed patient CSVs found in {self.root_dir}")
+        frames, delimiter = [], self.config.get("delimiter", ";")
+        for path in files:
+            raw = pd.read_csv(path, sep=delimiter)
+            missing = REQUIRED_COLUMNS - set(raw.columns)
+            if missing:
+                raise ValueError(f"{path.name} is missing required HUPA columns: {sorted(missing)}")
+            out = raw.rename(columns={"time":"timestamp", "glucose":"glucose_mg_dl", "heart_rate":"heart_rate_bpm", "bolus_volume_delivered":"bolus_raw", "carb_input":"carb_input_raw", "basal_rate":"basal_raw"}).copy()
+            out.insert(0, "patient_id", path.stem)
+            out["timestamp"] = pd.to_datetime(out["timestamp"], errors="coerce", utc=True).dt.tz_localize(None)
+            for col in ["glucose_mg_dl","calories","heart_rate_bpm","steps","basal_raw","bolus_raw","carb_input_raw"]:
+                out[col] = pd.to_numeric(out[col], errors="coerce")
+            carb_cfg = self.config.get("carb_input", {})
+            out["carbs_g"] = out["carb_input_raw"] * float(carb_cfg.get("grams_per_serving", 1)) if carb_cfg.get("mode") == "servings" else pd.NA
+            out["bolus_units"] = out["bolus_raw"] if self.config.get("bolus", {}).get("assume_units", False) else pd.NA
+            out["basal_value"] = out["basal_raw"]
+            frames.append(out[["patient_id","timestamp","glucose_mg_dl","calories","heart_rate_bpm","steps","basal_raw","basal_value","bolus_raw","bolus_units","carb_input_raw","carbs_g"]].sort_values("timestamp"))
+        return pd.concat(frames, ignore_index=True).sort_values(["patient_id","timestamp"]).reset_index(drop=True)
 
     def load_raw(self) -> dict[str, pd.DataFrame]:
-        root = Path(self.root_dir)
-        if not root.exists():
-            raise FileNotFoundError(
-                f"HUPA data directory not found: {root}. "
-                "Place HUPA files under data/raw/hupa/ or update the adapter paths in configuration."
-            )
-
-        glucose_path = root / "glucose.csv"
-        insulin_path = root / "insulin.csv"
-        meal_path = root / "meals.csv"
-        activity_path = root / "activity.csv"
-        sleep_path = root / "sleep.csv"
-
-        if not glucose_path.exists() and not insulin_path.exists() and not meal_path.exists():
-            raise FileNotFoundError(
-                f"No HUPA-like files found in {root}. Expected glucose.csv, insulin.csv, meals.csv, activity.csv, and sleep.csv."
-            )
-
-        glucose = pd.read_csv(glucose_path) if glucose_path.exists() else pd.DataFrame(columns=["patient_id", "timestamp", "glucose_mg_dl"])
-        insulin = pd.read_csv(insulin_path) if insulin_path.exists() else pd.DataFrame(columns=["patient_id", "timestamp", "bolus_units", "basal_rate", "insulin_type"])
-        meal = pd.read_csv(meal_path) if meal_path.exists() else pd.DataFrame(columns=["patient_id", "timestamp", "carbs_g", "protein_g", "fat_g"])
-        activity = pd.read_csv(activity_path) if activity_path.exists() else pd.DataFrame(columns=["patient_id", "timestamp", "steps", "heart_rate", "calories", "activity_label"])
-        sleep = pd.read_csv(sleep_path) if sleep_path.exists() else pd.DataFrame(columns=["patient_id", "start", "end", "duration_hours", "quality"])
-
-        frames = {
-            "glucose_events": self._normalize_glucose(glucose),
-            "insulin_events": self._normalize_insulin(insulin),
-            "meal_events": self._normalize_meal(meal),
-            "activity_events": self._normalize_activity(activity),
-            "sleep_events": self._normalize_sleep(sleep),
-        }
-        return frames
-
-    def _normalize_glucose(self, frame: pd.DataFrame) -> pd.DataFrame:
-        out = frame.copy()
-        out = out.rename(columns={
-            self.mapping.get("glucose_patient_id", "patient_id"): "patient_id",
-            self.mapping.get("glucose_timestamp", "timestamp"): "timestamp",
-            self.mapping.get("glucose_value", "glucose_mg_dl"): "glucose_mg_dl",
-        })
-        return out[["patient_id", "timestamp", "glucose_mg_dl"]]
-
-    def _normalize_insulin(self, frame: pd.DataFrame) -> pd.DataFrame:
-        out = frame.copy()
-        out = out.rename(columns={
-            self.mapping.get("insulin_patient_id", "patient_id"): "patient_id",
-            self.mapping.get("insulin_timestamp", "timestamp"): "timestamp",
-            self.mapping.get("insulin_bolus_units", "bolus_units"): "bolus_units",
-            self.mapping.get("insulin_basal_rate", "basal_rate"): "basal_rate",
-            self.mapping.get("insulin_type", "insulin_type"): "insulin_type",
-        })
-        return out[["patient_id", "timestamp", "bolus_units", "basal_rate", "insulin_type"]]
-
-    def _normalize_meal(self, frame: pd.DataFrame) -> pd.DataFrame:
-        out = frame.copy()
-        out = out.rename(columns={
-            self.mapping.get("meal_patient_id", "patient_id"): "patient_id",
-            self.mapping.get("meal_timestamp", "timestamp"): "timestamp",
-            self.mapping.get("meal_carbs", "carbs_g"): "carbs_g",
-            self.mapping.get("meal_protein", "protein_g"): "protein_g",
-            self.mapping.get("meal_fat", "fat_g"): "fat_g",
-        })
-        return out[["patient_id", "timestamp", "carbs_g", "protein_g", "fat_g"]]
-
-    def _normalize_activity(self, frame: pd.DataFrame) -> pd.DataFrame:
-        out = frame.copy()
-        out = out.rename(columns={
-            self.mapping.get("activity_patient_id", "patient_id"): "patient_id",
-            self.mapping.get("activity_timestamp", "timestamp"): "timestamp",
-            self.mapping.get("activity_steps", "steps"): "steps",
-            self.mapping.get("activity_heart_rate", "heart_rate"): "heart_rate",
-            self.mapping.get("activity_calories", "calories"): "calories",
-            self.mapping.get("activity_label", "activity_label"): "activity_label",
-        })
-        return out[["patient_id", "timestamp", "steps", "heart_rate", "calories", "activity_label"]]
-
-    def _normalize_sleep(self, frame: pd.DataFrame) -> pd.DataFrame:
-        out = frame.copy()
-        out = out.rename(columns={
-            self.mapping.get("sleep_patient_id", "patient_id"): "patient_id",
-            self.mapping.get("sleep_start", "start"): "start",
-            self.mapping.get("sleep_end", "end"): "end",
-            self.mapping.get("sleep_duration", "duration_hours"): "duration_hours",
-            self.mapping.get("sleep_quality", "quality"): "quality",
-        })
-        return out[["patient_id", "start", "end", "duration_hours", "quality"]]
+        table = self.load_preprocessed()
+        insulin = table[["patient_id","timestamp","bolus_units","basal_value","bolus_raw","basal_raw"]].rename(columns={"basal_value":"basal_rate"})
+        meals = table[["patient_id","timestamp","carbs_g","carb_input_raw"]].copy(); meals["protein_g"] = pd.NA; meals["fat_g"] = pd.NA
+        activity = table[["patient_id","timestamp","steps","calories","heart_rate_bpm"]].rename(columns={"heart_rate_bpm":"heart_rate"}); activity["activity_label"] = pd.NA
+        return {"glucose_events":table[["patient_id","timestamp","glucose_mg_dl"]], "insulin_events":insulin, "meal_events":meals, "activity_events":activity, "sleep_events":pd.DataFrame(columns=["patient_id","start","end","duration_hours","quality"])}

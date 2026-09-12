@@ -21,6 +21,16 @@ GlucoPilot is a hackathon-runnable Python prototype for personalized short-term 
 - It does not provide emergency alerts or medical guidance.
 - It does not extrapolate unsupported actions such as alcohol or caffeine without explicit training data support.
 
+## Data Provenance
+
+**Real HUPA-UCM data:** CGM, insulin raw values, carbohydrate raw values, heart rate, steps, calories, and time. `scripts/prepare_hupa.py` discovers every `data/raw/Preprocessed/HUPA*P.csv`, retains raw fields, and applies only configured conversions.
+
+**Synthetic POC data:** exercise metadata/effects, caffeine, alcohol, stress, illness, hydration, and hidden simulator-only patient sensitivities. These transparent response curves are demonstration assumptions, not medical ground truth.
+
+**Hybrid data:** a real HUPA physiological starting state plus a synthetic proposed action and synthetic response perturbation. Hybrid rows retain explicit provenance. This is not clinically validated and never provides insulin dosing advice.
+
+Run the end-to-end proof of concept with `python3 scripts/train_full_poc.py` (or `make full-poc`).
+
 ## Architecture
 
 MedicalProfile / CurrentState -> feature builder -> population models -> scenario forecast -> doctor policy -> structured outputs

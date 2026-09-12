@@ -27,8 +27,8 @@ def train_population_models(training_df: pd.DataFrame, cfg: dict, feature_names:
 
     for horizon in horizons:
         target_col = f"y{horizon}"
-        subset = training_df.dropna(subset=[target_col] + feature_names)
-        X = subset[feature_names]
+        subset = training_df.dropna(subset=[target_col])
+        X = subset[feature_names].replace([np.inf, -np.inf], np.nan).fillna(0)
         y = subset[target_col]
 
         params = {
@@ -41,6 +41,7 @@ def train_population_models(training_df: pd.DataFrame, cfg: dict, feature_names:
             "colsample_bytree": cfg.get("lightgbm", {}).get("colsample_bytree", 0.9),
             "random_state": seed,
             "verbose": -1,
+            "n_jobs": 1,
         }
 
         model = lgb.LGBMRegressor(**params)

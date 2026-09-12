@@ -18,10 +18,10 @@ class ModelRegistry:
     def save_population(self, models: dict[str, Any], metadata: dict[str, Any]):
         self._ensure_dirs()
         population_dir = self.root_dir / "population"
-        for name, model in models.items():
-            joblib.dump(model, population_dir / "models" / f"{name}.joblib")
         (population_dir / "models").mkdir(parents=True, exist_ok=True)
         (population_dir / "metadata").mkdir(parents=True, exist_ok=True)
+        for name, model in models.items():
+            joblib.dump(model, population_dir / "models" / f"{name}.joblib")
         with open(population_dir / "metadata" / "metadata.json", "w") as f:
             json.dump(metadata, f, indent=2)
 

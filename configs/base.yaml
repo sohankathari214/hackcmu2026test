@@ -1,4 +1,17 @@
 seed: 42
+hupa:
+  delimiter: ";"
+  carb_input:
+    mode: "servings"
+    grams_per_serving: 10
+  bolus:
+    assume_units: true
+  basal:
+    representation: "interval_or_rate_unknown"
+synthetic:
+  sample_fraction: 0.10
+  simulator_version: "poc-v1"
+  clip_range: [40, 400]
 prediction_horizons: [30, 60, 90, 120]
 target_tolerance_minutes: 15
 hypoglycemia_threshold: 70
@@ -18,7 +31,7 @@ recency_weights:
 similar_k: 10
 quantiles: [0.1, 0.5, 0.9]
 lightgbm:
-  n_estimators: 150
+  n_estimators: 40
   learning_rate: 0.05
   num_leaves: 31
   max_depth: -1

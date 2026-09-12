@@ -10,11 +10,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.schemas.current_state import CurrentState
 from src.schemas.medical_profile import MedicalProfile
-from src.inference.forecast import forecast_scenario
+from src.inference.scenarios import compare_scenarios
 
 
 if __name__ == "__main__":
     profile = MedicalProfile.model_validate(json.loads(Path("examples/medical_profile.json").read_text()))
     state = CurrentState.model_validate(json.loads(Path("examples/current_state.json").read_text()))
-    res = forecast_scenario(profile, state)
+    res = compare_scenarios(profile, state, [state.proposed_action.model_dump()])
     print(json.dumps(res, indent=2))
