@@ -135,10 +135,12 @@ The Next.js frontend lives in `frontend/`. Start the API in one terminal, then:
 ```bash
 cd frontend
 npm install
-NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+npm run dev
 ```
 
 Set `OPENAI_API_KEY` before starting FastAPI to enable OpenAI structured extraction on `/parse-state`, `/parse-profile`, and `/parse-policy`. The default is the low-cost `gpt-5-nano`; override it with `OPENAI_MODEL` if needed. Without a key, the deterministic demo parser is visibly labeled as such; it never impersonates OpenAI.
+
+The frontend proxies API requests through its own `/api/backend` path, so a local browser does not need a `NEXT_PUBLIC_API_URL`. Configure `BACKEND_API_URL` only when the API is hosted elsewhere.
 
 ## Example prediction
 

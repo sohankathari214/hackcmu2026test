@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import "../dashboard.css";
 
-const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const api = "/api/backend";
 const patient = "patient_001";
 
 export default function History() {

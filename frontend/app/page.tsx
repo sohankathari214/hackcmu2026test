@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, Clock3, FileText, FlaskConical, Gauge, Info, Play, ShieldCheck, Sparkles } from "lucide-react";
 import "./dashboard.css";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API = "/api/backend";
 const profile = { patient_id: "patient_001", profile_version: 1, demographics: { age_years: 24, weight_kg: 64 }, diabetes: { type: "T1D", years_since_diagnosis: 11, insulin_delivery: "pump" }, medications: [], conditions: [], baseline_metrics: {}, source_metadata: { demo: true } };
 const seed = "I’m at 145 and trending down. I ate 50 grams of carbs and took 3 units an hour ago. I want to go for a moderate 45-minute run now.";
 
