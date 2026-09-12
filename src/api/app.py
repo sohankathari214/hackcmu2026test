@@ -22,7 +22,7 @@ from src.models.registry import ModelRegistry
 from src.api.dashboard import HTML
 from src.physiology import fit_patient_parameters, monitor_drift
 from src.inference.support_registry import ActionSupportRegistry
-from src.llm import parse_state_text
+from src.llm import parse_state_text,parse_profile_text,parse_policy_text,explain_structured_forecast
 from src.features.build_state import build_feature_vector
 from src.inference.forecast import _events
 
@@ -41,6 +41,20 @@ def health():
 def parse_state(payload: dict[str, Any]):
     try: return parse_state_text(str(payload.get("text", "")))
     except (ValueError, RuntimeError) as exc: raise HTTPException(status_code=422, detail=str(exc))
+
+@app.post("/parse-profile")
+def parse_profile(payload: dict[str, Any]):
+    try: return parse_profile_text(str(payload.get("text","")),str(payload.get("patient_id","patient_001")))
+    except RuntimeError as exc: raise HTTPException(status_code=422,detail=str(exc))
+
+@app.post("/parse-policy")
+def parse_policy(payload: dict[str, Any]):
+    try: return parse_policy_text(str(payload.get("text","")),str(payload.get("patient_id","patient_001")))
+    except RuntimeError as exc: raise HTTPException(status_code=422,detail=str(exc))
+
+@app.post("/explain")
+def explain(payload: dict[str, Any]):
+    return explain_structured_forecast(payload.get("forecast",{}))
 
 
 @app.post("/forecast")
