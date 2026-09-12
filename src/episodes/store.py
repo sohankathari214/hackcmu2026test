@@ -11,6 +11,13 @@ class EpisodeStore:
     def patient(self,patient_id:str):
         if not self.path.exists(): return []
         return [x for x in (json.loads(line) for line in self.path.read_text().splitlines() if line.strip()) if x.get("patient_id")==patient_id]
+    def get(self,episode_id:str):
+        if not self.path.exists(): return None
+        for line in self.path.read_text().splitlines():
+            if line.strip():
+                episode=json.loads(line)
+                if episode.get("episode_id")==episode_id: return episode
+        return None
     def replace(self,episode:dict[str,Any]):
         rows=[] if not self.path.exists() else [json.loads(line) for line in self.path.read_text().splitlines() if line.strip()]
         rows=[episode if x.get("episode_id")==episode.get("episode_id") else x for x in rows]

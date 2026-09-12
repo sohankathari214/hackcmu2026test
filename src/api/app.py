@@ -96,7 +96,13 @@ def patient_episodes(patient_id: str):
 
 @app.post("/episodes/finalize")
 def finalize_episode_endpoint(payload: dict[str, Any]):
-    episode=finalize_episode(payload["episode"], payload.get("actual_action", {}), payload.get("observed", {}), payload.get("population_forecast", {}))
+    episode=payload.get("episode")
+    if not episode and payload.get("episode_id"):
+        episode=EpisodeStore().get(payload["episode_id"])
+    if not episode:
+        raise HTTPException(status_code=404,detail="Episode not found.")
+    forecast=payload.get("population_forecast") or episode.get("prediction",{})
+    episode=finalize_episode(episode, payload.get("actual_action", {}), payload.get("observed", {}), forecast)
     return EpisodeStore().replace(episode)
 
 
