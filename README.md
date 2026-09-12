@@ -128,6 +128,18 @@ Or:
 make api
 ```
 
+## Interactive frontend
+
+The Next.js frontend lives in `frontend/`. Start the API in one terminal, then:
+
+```bash
+cd frontend
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+```
+
+Set `GEMINI_API_KEY` before starting FastAPI to enable Gemini structured extraction on `/parse-state`, `/parse-profile`, and `/parse-policy`. Without a key, the deterministic demo parser is visibly labeled as such; it never impersonates Gemini.
+
 ## Example prediction
 
 ```bash
