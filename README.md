@@ -138,7 +138,7 @@ npm install
 NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
 
-Set `GEMINI_API_KEY` before starting FastAPI to enable Gemini structured extraction on `/parse-state`, `/parse-profile`, and `/parse-policy`. Without a key, the deterministic demo parser is visibly labeled as such; it never impersonates Gemini.
+Set `OPENAI_API_KEY` before starting FastAPI to enable OpenAI structured extraction on `/parse-state`, `/parse-profile`, and `/parse-policy`. The default is the low-cost `gpt-5-nano`; override it with `OPENAI_MODEL` if needed. Without a key, the deterministic demo parser is visibly labeled as such; it never impersonates OpenAI.
 
 ## Example prediction
 
