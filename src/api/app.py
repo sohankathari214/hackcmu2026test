@@ -22,6 +22,9 @@ from src.models.registry import ModelRegistry
 from src.api.dashboard import HTML
 from src.physiology import fit_patient_parameters, monitor_drift
 from src.inference.support_registry import ActionSupportRegistry
+from src.llm import parse_state_text
+from src.features.build_state import build_feature_vector
+from src.inference.forecast import _events
 
 app = FastAPI(title="GlucoPilot API")
 
@@ -32,7 +35,12 @@ def dashboard():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "population_model_loaded":__import__("pathlib").Path("artifacts/population/models").exists()}
+
+@app.post("/parse-state")
+def parse_state(payload: dict[str, Any]):
+    try: return parse_state_text(str(payload.get("text", "")))
+    except (ValueError, RuntimeError) as exc: raise HTTPException(status_code=422, detail=str(exc))
 
 
 @app.post("/forecast")
@@ -59,7 +67,15 @@ def create_episode_endpoint(payload: dict[str, Any]):
     episode=create_episode(payload["patient_id"], payload["state"], payload.get("planned_action", {}), payload.get("prediction", {}))
     # Clients may supply the canonical immutable snapshot; never infer it after outcomes arrive.
     if isinstance(payload.get("feature_vector"),dict): episode["feature_vector"]=payload["feature_vector"]
+    elif payload.get("medical_profile"):
+        profile=MedicalProfile.model_validate(payload["medical_profile"])
+        state=CurrentState.model_validate(payload["state"])
+        episode["feature_vector"]=build_feature_vector(profile,_events(profile,state),state.timestamp,state.proposed_action).fillna(0).to_dict()
     return EpisodeStore().append(episode)
+
+@app.get("/patients/{patient_id}/episodes")
+def patient_episodes(patient_id: str):
+    return {"patient_id":patient_id,"episodes":EpisodeStore().patient(patient_id)}
 
 
 @app.post("/episodes/finalize")

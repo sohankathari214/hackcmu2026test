@@ -13,3 +13,5 @@ artifacts/**/*.json
 artifacts/**/*.csv
 artifacts/**/*.png
 !artifacts/.gitkeep
+frontend/node_modules/
+frontend/.next/
