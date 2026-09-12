@@ -1,0 +1,19 @@
+{
+  "patient_id": "patient_001",
+  "policy_version": 1,
+  "risk_priorities": {
+    "general_hypoglycemia": 2,
+    "exercise_hypoglycemia": 3,
+    "hyperglycemia": 1,
+    "overnight_hypoglycemia": 1
+  },
+  "clinical_facts": [
+    {"type": "history", "value": "exercise can cause delayed hypoglycemia", "source_text": "visit note", "clinician_confirmed": true}
+  ],
+  "hard_rules": [],
+  "provenance": {
+    "source_document_id": "policy_001",
+    "approved_by_clinician": true,
+    "timestamp": "2026-09-11T12:00:00Z"
+  }
+}

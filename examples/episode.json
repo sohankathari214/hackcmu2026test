@@ -1,0 +1,29 @@
+{
+  "episode_id": "episode_001",
+  "patient_id": "patient_001",
+  "start_timestamp": "2026-09-11T12:00:00Z",
+  "pre_action_state": {
+    "timestamp": "2026-09-11T12:00:00Z",
+    "glucose": {"current_mg_dl": 123},
+    "recent_readings": [],
+    "insulin": {"recent_doses": [], "basal_rate_units_hr": 0.8},
+    "food": {"recent_meals": []},
+    "activity": {},
+    "sleep": {},
+    "context": {},
+    "proposed_action": {"action_type": "exercise"},
+    "parser_metadata": {"uncertain_fields": [], "missing_required_fields": []}
+  },
+  "planned_action": {"action_type": "exercise"},
+  "actual_action": {"action_type": "exercise"},
+  "prediction": {"population_model_version": "demo", "g30": 126, "g60": 119, "g90": 114, "g120": 112},
+  "observed": {"g30": 130, "g60": 118, "g90": 123, "g120": 131},
+  "residuals": {"r30": 4, "r60": -1, "r90": 9, "r120": 19},
+  "unexpected_events": [],
+  "quality": {
+    "complete": true,
+    "confounded": false,
+    "usable_for_personalization": true,
+    "exclusion_reasons": []
+  }
+}

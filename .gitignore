@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.DS_Store
+artifacts/**/*.joblib
+artifacts/**/*.json
+artifacts/**/*.csv
+artifacts/**/*.png
+!artifacts/.gitkeep

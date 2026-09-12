@@ -1,0 +1,31 @@
+population_model:
+  name: "population_lgbm"
+  horizons: [30, 60, 90, 120]
+  regression:
+    objective: "regression"
+  quantile:
+    q10: 0.1
+    q50: 0.5
+    q90: 0.9
+risk:
+  hypo:
+    enabled: true
+  hyper:
+    enabled: true
+support_registry:
+  exercise:
+    supported: true
+  meal:
+    supported: true
+  alcohol:
+    supported: false
+  caffeine:
+    supported: false
+  sleep:
+    supported_as_action: false
+    supported_as_context: true
+policy:
+  thresholds:
+    low: 0.2
+    moderate: 0.5
+    elevated: 0.8

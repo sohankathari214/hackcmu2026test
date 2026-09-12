@@ -1,0 +1,17 @@
+feature_groups:
+  glucose:
+    enabled: true
+  insulin:
+    enabled: true
+  carbs:
+    enabled: true
+  activity:
+    enabled: true
+  sleep:
+    enabled: true
+  static:
+    enabled: true
+  action:
+    enabled: true
+cyclical_time:
+  enabled: true

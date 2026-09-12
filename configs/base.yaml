@@ -1,0 +1,28 @@
+seed: 42
+prediction_horizons: [30, 60, 90, 120]
+target_tolerance_minutes: 15
+hypoglycemia_threshold: 70
+hyperglycemia_threshold: 180
+train_ratio: 0.7
+val_ratio: 0.15
+test_ratio: 0.15
+personal_min_episodes: 10
+personal_retrain_interval: 5
+personal_shrinkage_k: 20
+recency_weights:
+  recent_days: 30
+  recent_weight: 1.0
+  mid_weight: 0.75
+  old_weight: 0.5
+  old_days: 90
+similar_k: 10
+quantiles: [0.1, 0.5, 0.9]
+lightgbm:
+  n_estimators: 150
+  learning_rate: 0.05
+  num_leaves: 31
+  max_depth: -1
+  subsample: 0.9
+  colsample_bytree: 0.9
+  random_state: 42
+  verbose: -1

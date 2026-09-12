@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-09-11T12:00:00Z",
+  "glucose": {
+    "current_mg_dl": 123,
+    "recent_readings": [
+      {"minutes_ago": 15, "mg_dl": 128},
+      {"minutes_ago": 30, "mg_dl": 134},
+      {"minutes_ago": 60, "mg_dl": 140}
+    ]
+  },
+  "insulin": {
+    "recent_doses": [
+      {"minutes_ago": 45, "units": 1.2, "type": "bolus"}
+    ],
+    "basal_rate_units_hr": 0.8,
+    "reported_iob_units": 0.3
+  },
+  "food": {
+    "recent_meals": [
+      {"minutes_ago": 120, "carbs_g": 30}
+    ]
+  },
+  "activity": {
+    "recent_activity_minutes": 10,
+    "recent_steps": 900,
+    "current_hr": 84,
+    "recent_hr_samples": [86, 84, 82]
+  },
+  "sleep": {
+    "last_sleep_hours": 7.5,
+    "quality": "good",
+    "minutes_since_waking": 210
+  },
+  "context": {
+    "stress_level": 1,
+    "illness": false,
+    "hydration": "adequate",
+    "caffeine_events": [],
+    "alcohol_events": []
+  },
+  "proposed_action": {
+    "action_type": "exercise",
+    "exercise": {
+      "category": "cardio",
+      "duration_minutes": 40,
+      "intensity": "moderate",
+      "start_delay_minutes": 0
+    }
+  },
+  "parser_metadata": {
+    "uncertain_fields": [],
+    "missing_required_fields": []
+  }
+}

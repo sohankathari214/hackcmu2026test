@@ -1,0 +1,34 @@
+{
+  "patient_id": "patient_001",
+  "profile_version": 1,
+  "demographics": {
+    "age_years": 34,
+    "sex_at_birth": "female",
+    "height_cm": 168,
+    "weight_kg": 62
+  },
+  "diabetes": {
+    "type": "T1D",
+    "years_since_diagnosis": 14,
+    "insulin_delivery": "pump",
+    "cgm_type": "dexcom"
+  },
+  "medications": [
+    {
+      "name": "insulin",
+      "category": "basal/bolus",
+      "dose": null,
+      "unit": null
+    }
+  ],
+  "conditions": ["exercise-induced hypoglycemia"],
+  "baseline_metrics": {
+    "resting_hr": 62,
+    "usual_sleep_hours": 8.0
+  },
+  "source_metadata": {
+    "extracted_by": "demo",
+    "user_confirmed": true,
+    "extraction_version": "1.0"
+  }
+}
