@@ -1,6 +1,7 @@
 """LLM boundary: language becomes validated data; the LLM never forecasts glucose."""
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -48,7 +49,21 @@ def _openai_extract(text: str, schema: type, instructions: str) -> dict[str, Any
         )
         if not response.output_text:
             raise RuntimeError("OpenAI returned no structured output.")
-        return schema.model_validate_json(response.output_text).model_dump(mode="json")
+        payload = json.loads(response.output_text)
+        # The state timestamp is the parser's receipt time, not an invented
+        # clinical observation. It keeps a partial user report usable by the
+        # downstream time-based feature engine.
+        if schema is CurrentState:
+            payload.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+            payload.setdefault("recent_readings", [])
+            payload.setdefault("insulin", {})
+            payload.setdefault("food", {})
+            payload.setdefault("activity", {})
+            payload.setdefault("sleep", {})
+            payload.setdefault("context", {})
+            payload.setdefault("proposed_action", {"action_type": "none"})
+            payload.setdefault("parser_metadata", {})
+        return schema.model_validate(payload).model_dump(mode="json")
     except Exception as exc:
         raise RuntimeError(f"OpenAI structured extraction failed; no fallback was used: {exc}") from exc
 
