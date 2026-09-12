@@ -1,0 +1,2 @@
+import {Shell} from "../../components/Shell";
+export default function CarePlan(){return <Shell title="Care plan"><section className="card"><h2>Clinician priorities</h2><div className="row"><span>Exercise-associated hypoglycemia</span><b>High</b></div><div className="row"><span>Overnight hypoglycemia</span><b>High</b></div><div className="row"><span>Hyperglycemia</span><b>Moderate</b></div><p className="warning">Care-plan policy interprets a forecast after it is generated. It never modifies the physiology prediction.</p></section></Shell>}

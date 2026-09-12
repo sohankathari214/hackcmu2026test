@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function Shell({title,children}:{title:string;children:React.ReactNode}){return <main><nav><Link href="/" className="brand">GlucoPilot</Link><span className="tag">Research prototype · Not medical advice</span></nav><div className="actions" style={{marginBottom:20}}>{[["/","Home"],["/simulate","Simulate"],["/history","History"],["/insights","Insights"],["/care-plan","Care Plan"],["/profile","Profile"]].map(([h,l])=><Link key={h} href={h} className="pill">{l}</Link>)}</div><h1 className="hero">{title}</h1>{children}</main>}

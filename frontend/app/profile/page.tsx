@@ -1,0 +1,2 @@
+import {Shell} from "../../components/Shell";
+export default function Profile(){return <Shell title="Profile"><section className="card"><h2>Maya · Demo profile</h2><div className="row"><span>Type 1 diabetes duration</span><span>11 years</span></div><div className="row"><span>Insulin delivery</span><span>Pump</span></div><div className="row"><span>Data connection</span><span>Demo HUPA-backed model</span></div><p className="warning">This proof of concept is not a medical device and never provides dosing advice.</p></section></Shell>}
