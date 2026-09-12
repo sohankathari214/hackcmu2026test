@@ -13,6 +13,7 @@ from src.inference.scenarios import compare_scenarios
 from src.episodes.create import create_episode
 from src.episodes.finalize import finalize_episode
 from src.episodes.store import EpisodeStore
+from src.episodes.retrain import retrain_from_episodes
 from src.decision import evaluate_permission
 from src.decision import evaluate_lifestyle_change, plan_day
 from src.safety import evaluate_safety
@@ -45,17 +46,19 @@ def forecast(profile: MedicalProfile, state: CurrentState):
             "reason": reason,
             "action_type": action_type,
         }
-    return forecast_scenario(profile, state)
+    return forecast_scenario(profile, state, episodes=EpisodeStore().patient(profile.patient_id))
 
 
 @app.post("/compare-scenarios")
 def compare(profile: MedicalProfile, state: CurrentState):
-    return compare_scenarios(profile, state, [state.proposed_action.model_dump()])
+    return compare_scenarios(profile, state, [state.proposed_action.model_dump()], episodes=EpisodeStore().patient(profile.patient_id))
 
 
 @app.post("/episodes/create")
 def create_episode_endpoint(payload: dict[str, Any]):
     episode=create_episode(payload["patient_id"], payload["state"], payload.get("planned_action", {}), payload.get("prediction", {}))
+    # Clients may supply the canonical immutable snapshot; never infer it after outcomes arrive.
+    if isinstance(payload.get("feature_vector"),dict): episode["feature_vector"]=payload["feature_vector"]
     return EpisodeStore().append(episode)
 
 
@@ -73,10 +76,8 @@ def model_status(patient_id: str):
 
 @app.post("/patients/{patient_id}/retrain-personal")
 def retrain_personal(patient_id: str):
-    usable=[e for e in EpisodeStore().patient(patient_id) if e.get("quality",{}).get("usable_for_personalization")]
-    if len(usable)<10: raise HTTPException(status_code=409,detail="At least 10 usable completed episodes are required before personal-model training.")
-    # Residual fitting is intentionally invoked by the training job; endpoint reports real eligibility rather than fabricating a model.
-    return {"status":"eligible_for_retraining","patient_id":patient_id,"valid_episode_count":len(usable),"alpha":alpha_for_episode_count(len(usable)),"warning":"Use scripts/train_personalization.py to persist the residual model."}
+    try: return retrain_from_episodes(patient_id,EpisodeStore().patient(patient_id))
+    except ValueError as exc: raise HTTPException(status_code=409,detail=str(exc))
 
 
 @app.post("/evaluate-policy")
