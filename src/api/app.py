@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.schemas.current_state import CurrentState
 from src.schemas.doctor_policy import DoctorPolicy
@@ -27,6 +28,7 @@ from src.features.build_state import build_feature_vector
 from src.inference.forecast import _events
 
 app = FastAPI(title="GlucoPilot API")
+app.add_middleware(CORSMiddleware,allow_origins=["http://localhost:3000","http://127.0.0.1:3000"],allow_credentials=False,allow_methods=["GET","POST","OPTIONS"],allow_headers=["Content-Type","Authorization"])
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
